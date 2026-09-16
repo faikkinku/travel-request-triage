@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>New client request</h1>
+  <p class="subtitle">
+    Paste the client's message as they wrote it. The assistant classifies it,
+    grounds its reasoning in agency policy, and proposes a next step for a manager
+    to approve — nothing is sent to the client automatically.
+  </p>
+
+  {% if not agent_ready %}
+    <p class="warning">
+      ANTHROPIC_API_KEY is not set — the model call is unavailable, but the
+      independent guardrail check below still runs.
+    </p>
+  {% endif %}
+
+  <form method="post" action="/">
+    <label>Client message
+      <textarea name="message" rows="6" required placeholder="e.g. Hi, my flight WL4B92 to Lisbon got cancelled and I need to rebook for this weekend, my mom passed away and I need to get there for the funeral...">{{ message or "" }}</textarea>
+    </label>
+    <button type="submit">Run triage</button>
+  </form>
+
+  {% if error %}
+    <div class="result-box error">
+      <h2>Could not complete triage</h2>
+      <p>{{ error }}</p>
+      {% if overrides %}
+        <p><strong>Independent guardrail check still found:</strong> {{ overrides | join(", ") }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if response %}
+    {% set r = response.result %}
+    <div class="result-box {{ 'escalated' if r.escalate else 'ok' }}">
+      <h2>Proposal #{{ response.proposal_id }} — {{ response.status }}</h2>
+      <div class="badges">
+        <span class="badge">{{ r.request_type }}</span>
+        <span class="badge urgency-{{ r.urgency }}">{{ r.urgency }}</span>
+        <span class="badge">confidence {{ "%.2f"|format(r.confidence) }}</span>
+        {% if r.escalate %}<span class="badge escalate">ESCALATED</span>{% endif %}
+      </div>
+      <p><strong>Summary:</strong> {{ r.summary }}</p>
+      <p><strong>Proposed action:</strong> {{ r.proposed_action }}</p>
+      <p><strong>Confidence reason:</strong> {{ r.confidence_reason }}</p>
+      {% if r.escalate_reason %}<p class="escalate-reason"><strong>Escalation reason:</strong> {{ r.escalate_reason }}</p>{% endif %}
+
+      {% if response.override_flags %}
+        <p class="override-note"><strong>Independent guardrail check flagged:</strong> {{ response.override_flags | join(", ") }}</p>
+      {% endif %}
+
+      {% if response.fare_check %}
+        <div class="fare-check">
+          <strong>Fare check — {{ response.fare_check.booking_ref }}:</strong>
+          {% if response.fare_check.found %}
+            {{ response.fare_check.fare_class }} fare,
+            {{ "refundable" if response.fare_check.refundable else "non-refundable" }},
+            change fee ${{ "%.2f"|format(response.fare_check.change_fee) }},
+            travels {{ response.fare_check.travel_date }}
+          {% else %}
+            no booking found for this reference
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if r.citations %}
+        <details class="citations" open>
+          <summary>Evidence ({{ r.citations|length }})</summary>
+          {% for c in r.citations %}
+            <div class="citation">
+              <div class="citation-source">{{ c.document }} — {{ c.section }}</div>
+              <div class="citation-quote">"{{ c.quote }}"</div>
+            </div>
+          {% endfor %}
+        </details>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+# Render blueprint. Point Render at this repository and it reads this file.
+#
+# Unlike a neural-embedding RAG setup, retrieval here is scikit-learn TF-IDF, which
+# has no PyTorch dependency and comfortably fits the free tier's 512 MB — a
+# deliberate tradeoff against the sentence-transformers approach at this corpus size
+# (see README).
+
+services:
+  - type: web
+    name: travel-request-triage
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Runs once per deploy, after the build and before the server starts. seed.py
+    # creates the tables (no Alembic at this stage — see README) and is idempotent,
+    # so re-running it on later deploys is safe and also re-indexes the knowledge
+    # base after a policy document changes.
+    preDeployCommand: python seed.py
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.8"
+      # Set these in Render's dashboard — never in this file, which is in Git.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true

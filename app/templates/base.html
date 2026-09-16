@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ agency_name }} — Request Triage{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">{{ agency_name }} · Request Triage</a>
+    <nav>
+      {% if user %}
+        <span class="who">{{ user.username }} ({{ user.role }})</span>
+        {% if user.role == "manager" %}<a href="/review">Review queue</a>{% endif %}
+        <a href="/logout">Sign out</a>
+      {% else %}
+        <a href="/login">Sign in</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

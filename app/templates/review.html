@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card wide">
+  <h1>Review queue</h1>
+  <p class="subtitle">What a manager sees. Approve or reject each proposal after checking the evidence.</p>
+
+  {% for row in rows %}
+    {% set p = row.proposal %}
+    {% set r = row.result %}
+    <div class="queue-item {{ 'escalated' if r and r.escalate else '' }} status-{{ p.status }}">
+      <div class="queue-header">
+        <span class="badge">#{{ p.id }}</span>
+        {% if r %}
+          <span class="badge">{{ r.request_type }}</span>
+          <span class="badge urgency-{{ r.urgency }}">{{ r.urgency }}</span>
+          <span class="badge">confidence {{ "%.2f"|format(r.confidence) }}</span>
+          {% if r.escalate %}<span class="badge escalate">ESCALATED</span>{% endif %}
+        {% else %}
+          <span class="badge error">invalid stored result</span>
+        {% endif %}
+        <span class="badge status">{{ p.status }}</span>
+      </div>
+
+      {% if r %}
+        <p><strong>Summary:</strong> {{ r.summary }}</p>
+        <p><strong>Proposed action:</strong> {{ r.proposed_action }}</p>
+        {% if r.escalate_reason %}<p class="escalate-reason">{{ r.escalate_reason }}</p>{% endif %}
+        {% if p.override_flags %}
+          <p class="override-note"><strong>Guardrail flags:</strong> {{ p.override_flags | join(", ") }}</p>
+        {% endif %}
+        {% if p.booking_ref %}<p><strong>Booking reference checked:</strong> {{ p.booking_ref }}</p>{% endif %}
+
+        {% if r.citations %}
+          <details class="citations">
+            <summary>Evidence ({{ r.citations|length }})</summary>
+            {% for c in r.citations %}
+              <div class="citation">
+                <div class="citation-source">{{ c.document }} — {{ c.section }}</div>
+                <div class="citation-quote">"{{ c.quote }}"</div>
+              </div>
+            {% endfor %}
+          </details>
+        {% endif %}
+      {% endif %}
+
+      {% if p.status == "pending" %}
+        <form method="post" action="/review/{{ p.id }}/decide" class="decide-form">
+          <input type="text" name="note" placeholder="Optional note">
+          <button type="submit" name="decision" value="approve" class="approve">Approve</button>
+          <button type="submit" name="decision" value="reject" class="reject">Reject</button>
+        </form>
+      {% else %}
+        <p class="decided">{{ p.status }} by {{ p.decided_by }}{% if p.decision_note %} — {{ p.decision_note }}{% endif %}</p>
+      {% endif %}
+    </div>
+  {% else %}
+    <p>No proposals yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}
