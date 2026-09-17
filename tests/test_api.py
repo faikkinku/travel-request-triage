@@ -66,3 +66,38 @@ def test_api_intake_without_key_returns_service_unavailable(client):
     # should fail cleanly rather than crash the request.
     response = client.post("/api/intake", json={"message": "Can I add a checked bag?"})
     assert response.status_code == 503
+
+
+def test_review_queue_renders_enum_values_not_python_repr(client, db_session):
+    """Regression test: Jinja's default `str()` on a `str, Enum` member renders
+    "RequestType.REBOOKING" rather than "rebooking" — caught live when a real
+    proposal first rendered in the browser. `{{ field.value }}` is required in the
+    templates, not `{{ field }}`, and this also matters for the urgency-<value> CSS
+    class the color coding depends on.
+    """
+    from app.models import Proposal
+    from app.schemas import Citation, RequestType, TriageResult, Urgency
+
+    result = TriageResult(
+        request_type=RequestType.REBOOKING,
+        urgency=Urgency.IMMEDIATE,
+        confidence=0.9,
+        confidence_reason="clear",
+        citations=[Citation(document="d.md", section="s", quote="q")],
+        escalate=True,
+        escalate_reason="test",
+        proposed_action="do the thing",
+        summary="a test proposal",
+    )
+    db_session.add(
+        Proposal(session_id=1, result=result.model_dump(mode="json"), override_flags=[], status="pending")
+    )
+    db_session.commit()
+
+    client.post("/login", data={"username": "manager", "password": "manager123"})
+    response = client.get("/review")
+
+    assert "RequestType." not in response.text
+    assert "Urgency." not in response.text
+    assert "rebooking" in response.text
+    assert 'urgency-immediate"' in response.text

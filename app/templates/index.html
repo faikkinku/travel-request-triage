@@ -37,8 +37,8 @@
     <div class="result-box {{ 'escalated' if r.escalate else 'ok' }}">
       <h2>Proposal #{{ response.proposal_id }} — {{ response.status }}</h2>
       <div class="badges">
-        <span class="badge">{{ r.request_type }}</span>
-        <span class="badge urgency-{{ r.urgency }}">{{ r.urgency }}</span>
+        <span class="badge">{{ r.request_type.value }}</span>
+        <span class="badge urgency-{{ r.urgency.value }}">{{ r.urgency.value }}</span>
         <span class="badge">confidence {{ "%.2f"|format(r.confidence) }}</span>
         {% if r.escalate %}<span class="badge escalate">ESCALATED</span>{% endif %}
       </div>
