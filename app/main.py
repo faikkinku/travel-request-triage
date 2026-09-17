@@ -34,6 +34,21 @@ BASE_DIR = config.BASE_DIR
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     create_all()
+    # Seed on every startup, not just once at deploy time. Render's free tier has
+    # no persistent disk: the SQLite fallback file is wiped every time the service
+    # spins back up after an idle period, so a one-time pre-deploy seed would leave
+    # the app with no login users after the first spin-down. seed_users/
+    # seed_bookings/index_knowledge are all idempotent, so re-running them against
+    # an already-seeded database (Postgres in production, where data persists) is
+    # a fast no-op rather than a problem.
+    from app.db import SessionLocal
+    from app.knowledge import index_knowledge
+    from seed import seed_bookings, seed_users
+
+    with SessionLocal() as db:
+        seed_users(db)
+        seed_bookings(db)
+        index_knowledge(db)
     yield
 
 
