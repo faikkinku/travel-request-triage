@@ -58,14 +58,21 @@ def check_fare_rule(db: Session, booking_ref: str) -> dict:
     if booking is None:
         return {"booking_ref": booking_ref, "found": False}
 
-    days_until_travel = (booking.travel_date - datetime.now(timezone.utc)).days
+    # SQLite does not actually persist timezone offsets even on a
+    # DateTime(timezone=True) column — values round-trip as naive. Every value we
+    # write is UTC (see seed.py), so treat a naive read as UTC rather than let the
+    # subtraction below raise on aware-minus-naive.
+    travel_date = booking.travel_date
+    if travel_date.tzinfo is None:
+        travel_date = travel_date.replace(tzinfo=timezone.utc)
+    days_until_travel = (travel_date - datetime.now(timezone.utc)).days
     return {
         "booking_ref": booking.booking_ref,
         "found": True,
         "fare_class": booking.fare_class,
         "refundable": booking.refundable,
         "change_fee": booking.change_fee,
-        "travel_date": booking.travel_date.isoformat(),
+        "travel_date": travel_date.isoformat(),
         "days_until_travel": days_until_travel,
     }
 

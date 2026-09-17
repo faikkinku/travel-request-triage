@@ -64,3 +64,19 @@ def _seeded_database():
 @pytest.fixture
 def client():
     return TestClient(app)
+
+
+@pytest.fixture
+def db_session():
+    """A session bound to the same test engine the app itself uses in tests.
+
+    Exposed as a fixture rather than an importable name: importing this module as
+    `tests.conftest` from another test file creates a second module instance (since
+    tests/ has no __init__.py), which would spin up a second in-memory engine with
+    none of the tables or seed data the real one has.
+    """
+    db = TestSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

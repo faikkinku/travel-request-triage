@@ -251,6 +251,15 @@ def _conversation(
                     is_error = False
                 except ToolPermissionError as exc:
                     output, is_error = {"error": str(exc)}, True
+                except Exception as exc:
+                    # Any other failure (a bad argument, a lookup bug, whatever) must
+                    # still produce a tool_result. The API requires every tool_use
+                    # block to be answered in the very next message — leaving one
+                    # dangling corrupts the conversation for every future call in
+                    # this request, including the retry in run_agent, so this is not
+                    # optional error handling.
+                    logger.warning("tool '%s' raised %s: %s", block.name, type(exc).__name__, exc)
+                    output, is_error = {"error": f"tool failed: {exc}"}, True
                 audit["tool_calls"].append(
                     {"name": block.name, "input": dict(block.input), "is_error": is_error}
                 )
