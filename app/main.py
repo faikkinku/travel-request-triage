@@ -119,6 +119,7 @@ def process_intake(db: Session, message: str, actor: str = "anonymous", role: st
         result=json.loads(result.model_dump_json()),
         override_flags=override_flags,
         booking_ref=fare_check.booking_ref if fare_check else None,
+        fare_check=json.loads(fare_check.model_dump_json()) if fare_check else None,
         status="pending",
     )
     db.add(proposal)

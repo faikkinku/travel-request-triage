@@ -65,6 +65,10 @@ class Proposal(Base):
     # Not a foreign key on purpose: an agent can type a booking reference that turns
     # out not to exist, and that is itself something worth recording, not hiding.
     booking_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # A serialized FareCheck — whatever check_fare_rule actually returned, including
+    # a not-found result. Stored whole so the manager sees the same fare details the
+    # agent saw, not just the reference string.
+    fare_check: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     status: Mapped[str] = mapped_column(String(20), default="pending")
     decided_by: Mapped[str | None] = mapped_column(String(120), nullable=True)

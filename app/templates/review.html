@@ -28,7 +28,19 @@
         {% if p.override_flags %}
           <p class="override-note"><strong>Guardrail flags:</strong> {{ p.override_flags | join(", ") }}</p>
         {% endif %}
-        {% if p.booking_ref %}<p><strong>Booking reference checked:</strong> {{ p.booking_ref }}</p>{% endif %}
+        {% if p.fare_check %}
+          <div class="fare-check">
+            <strong>Fare check — {{ p.fare_check.booking_ref }}:</strong>
+            {% if p.fare_check.found %}
+              {{ p.fare_check.fare_class }} fare,
+              {{ "refundable" if p.fare_check.refundable else "non-refundable" }},
+              change fee ${{ "%.2f"|format(p.fare_check.change_fee) }},
+              travels {{ p.fare_check.travel_date }}
+            {% else %}
+              no booking found for this reference
+            {% endif %}
+          </div>
+        {% endif %}
 
         {% if r.citations %}
           <details class="citations">
